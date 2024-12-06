@@ -1,0 +1,36 @@
+﻿@page
+@model Sample.Web.Pages.ModelModel
+@{
+}
+
+@*
+    This page allows you to enter a System Prompt and User Prompt on one side,
+    then see the full response on the right hand side once done.
+*@
+
+<div class="container">
+    <div class="row">
+        <div class="col-6">
+            <h1>Request</h1>
+            <form method="post">
+                <div class="mb-3">
+                    <label asp-for="SystemPrompt" class="form-label">Custom System Prompt</label>
+                    <textarea asp-for="SystemPrompt" class="form-control" rows="6"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="UserPrompt" class="form-label">User Prompt</label>
+                    <textarea asp-for="UserPrompt" class="form-control" rows="6"></textarea>
+                </div>
+                <div class="mb-3">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+        </div>
+        <div class="col-6">
+            <h1>Response</h1>
+            <div class="response-output">
+                <pre>@Model.JsonResponse</pre>
+            </div>
+        </div>
+    </div>
+</div>
