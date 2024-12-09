@@ -12,6 +12,9 @@ param location string = resourceGroup().location
 @description('Optional.  The list of tags to apply to the created resources.')
 param tags object = {}
 
+@description('Optional.  The principal ID to assign as an owner.')
+param principalId string = ''
+
 @description('Optional.  The resource ID for the managed identity to use for the AI Foundry resources.  If not provided, a user-assigned identity will be created')
 param managedIdentityResourceId string = ''
 
@@ -74,7 +77,12 @@ module keyVault './pre-requisites/key-vault.bicep' = {
     location: location
     tags: tags
     resourceId: keyVaultResourceId
-    principalId: managedIdentity.outputs.principalId
+    roleAssignments: concat([
+      { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Key Vault Secrets User' }
+    ], principalId != '' ? [
+      { principalId: principalId, principalType: 'User', roleDefinitionIdOrName: 'Owner' }
+      { principalId: principalId, principalType: 'User', roleDefinitionIdOrName: 'Key Vault Secrets Officer' }
+    ] : [])
   }
 }
 
@@ -85,9 +93,11 @@ module storageAccount './pre-requisites/storage-account.bicep' = {
     location: location
     tags: tags
     resourceId: storageAccountResourceId
-    roleAssignments: [
+    roleAssignments: concat([
       { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Reader and Data Access' }
-    ]
+    ], principalId != '' ? [
+      { principalId: principalId, principalType: 'User', roleDefinitionIdOrName: 'Reader and Data Access' }
+    ] : [])
   }
 }
 
@@ -118,10 +128,12 @@ module aiFoundryHub './modules/ai-foundry-hub.bicep' = {
     keyVaultResourceId: keyVault.outputs.resourceId
     managedIdentityPrincipalId: managedIdentity.outputs.principalId
     storageAccountResourceId: storageAccount.outputs.resourceId
-    roleAssignments: [
+    roleAssignments: concat([
       { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Azure AI Developer' }
       { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Search Service Data Contributor' }
-    ]
+    ], principalId != '' ? [
+      { principalId: principalId, principalType: 'User', roleDefinitionIdOrName: 'Azure AI Developer' }
+    ] : [])
   }
 }
 
@@ -133,10 +145,12 @@ module aiFoundryProject './modules/ai-foundry-project.bicep' = {
     tags: tags
     hubResourceId: aiFoundryHub.outputs.resourceId
     managedIdentityPrincipalId: managedIdentity.outputs.principalId
-    roleAssignments: [
+    roleAssignments: concat([
       { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Azure AI Developer' }
       { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Search Service Data Contributor' }
-    ]
+    ], principalId != '' ? [
+      { principalId: principalId, principalType: 'User', roleDefinitionIdOrName: 'Azure AI Developer' }
+    ] : [])
   }
 }
 

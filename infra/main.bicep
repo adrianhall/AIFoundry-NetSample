@@ -18,8 +18,6 @@ var resourceToken = toLower(uniqueString(subscription().id, environmentName, loc
 @description('A set of tags to apply to all resources in this environment')
 var tags = { 'azd-env-name': environmentName }
 
-
-
 /*
 ** Resource Group
 **
@@ -98,16 +96,19 @@ module aiFoundryProject 'modules/ptn/ai-foundry/main.bicep' = {
     location: location
     tags: tags
 
+    // A principal ID to assign as an owner to resources.
+    principalId: principalId
+
     // The managed identity to use for all resources.  If one is not provided, a user-assigned
     // managed identity will be created and assigned appropriate roles.
     managedIdentityResourceId: userAssignedIdentity.outputs.resourceId
 
     // If specified, the resource ID for the Azure AI Foundry Hub that this project will be
     // attached to.  If not specified, a new Azure AI Foundry Hub will be created.
-    // aiFoundryHubResourceId: null
+    // aiFoundryHubResourceId: aiFoundryHub.outputs.resourceId
 
     // Pre-requisites - each one of these resources can be provided using a resourceId OR it will 
-    //  be automatically created for you with some overrides that you can provide.
+    //  be automatically created for you with the default settings necessary for AI Foundry.
 
     // keyVaultResourceId: keyVault.outputs.resourceId
     logAnalyticsWorkspaceResourceId: logAnalytics.outputs.resourceId

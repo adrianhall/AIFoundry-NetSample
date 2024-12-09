@@ -20,8 +20,9 @@ param tags object
 @description('If specified, use this resource rather than creating one')
 param resourceId string = ''
 
-@description('The principal ID of the managed identity to grant access to the key vault')
-param principalId string
+import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.2.1'
+@description('Optional. Array of role assignments to create.')
+param roleAssignments roleAssignmentType[]?
 
 var splitId = split(resourceId, '/')
 
@@ -40,9 +41,7 @@ module createdResource 'br/public:avm/res/key-vault/vault:0.11.0' = if (empty(re
       bypass: 'AzureServices'
       defaultAction: 'Deny'
     }
-    roleAssignments: [
-      { principalId: principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Key Vault Secrets User' }
-    ]
+    roleAssignments: roleAssignments
   }
 }
 
