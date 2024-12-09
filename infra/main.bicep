@@ -18,7 +18,14 @@ var resourceToken = toLower(uniqueString(subscription().id, environmentName, loc
 @description('A set of tags to apply to all resources in this environment')
 var tags = { 'azd-env-name': environmentName }
 
-// We organize resources into resource groups.  This project places all required resources into the same resource group
+
+
+/*
+** Resource Group
+**
+** All the resources we create are contained in the resource group - you can delete
+** the resource group to delete all resources (except for any Azure AD creations).
+*/
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: 'rg-${environmentName}'
   location: location
@@ -26,60 +33,97 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 }
 
 /*
-** Start off with some common services that are used by all other services
+** User-assigned Managed Identity
 **
-**  - Azure Key Vault is used to store any secrets used by the environment.
-**  - Azure Log Analytics is used to store logs and metrics.
-**  - Azure Application Insights is used to monitor the environment.
-**  - User-assigned Managed Identity is used for RBAC across the environment.
+** All resources within this environment will use this managed identity where possible
+** for talking to other services within the environment.  It ensures we have a consistent
+** identity for doing RBAC across the environment.
 */
-module commonServices './modules/common-services.bicep' = {
-  name: 'common-services-${resourceToken}'
+module userAssignedIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.0' = {
+  name: 'managed-identity-${resourceToken}'
   scope: rg
   params: {
-    resourceToken: resourceToken
+    name: 'mi-app-${resourceToken}'
     location: location
-    principalId: principalId
     tags: tags
   }
 }
 
 /*
-** Next, deploy the Azure AI Foundry base resources
+** Azure Monitor is used for logging and reporting across the environment.  It consists of a pair of
+** services - a Log Analytics workspace for capturing logs and an Application Insights instance for
+** monitoring.
 */
-module aiFoundry './modules/ai-foundry.bicep' = {
+module logAnalytics 'br/public:avm/res/operational-insights/workspace:0.9.0' = {
+  name: 'log-analytics-${resourceToken}'
+  scope: rg
+  params: {
+    name: 'law-${resourceToken}'
+    location: location
+    tags: tags
+    skuName: 'PerGB2018'
+  }
+}
+
+module appInsights 'br/public:avm/res/insights/component:0.4.2' = {
+  name: 'app-insights-${resourceToken}'
+  scope: rg
+  params: {
+    name: 'ai-${resourceToken}'
+    location: location
+    tags: tags
+    applicationType: 'web'
+    disableIpMasking: true
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
+    workspaceResourceId: logAnalytics.outputs.resourceId
+  }
+}
+
+/*
+** Deploy an Azure AI Foundry Project
+*/
+module aiFoundryProject 'modules/ptn/ai-foundry/main.bicep' = {
   name: 'ai-foundry-${resourceToken}'
   scope: rg
   params: {
-    environmentName: environmentName
-    resourceToken: resourceToken
+    // The name of the AI Foundry Project to create.  If not specified, the name will be
+    // created from the nameSuffix.
+    name: 'aiproject-${environmentName}'
+
+    // Suffix all names that are not specified with the resource token
+    nameSuffix: resourceToken
+
+    // The location & tags for all resources
     location: location
-    principalId: principalId
     tags: tags
 
-    applicationInsightsResourceId: commonServices.outputs.appInsightsResourceId
-    keyVaultResourceId: commonServices.outputs.keyVaultResourceId
-    managedIdentityPrincipalId: commonServices.outputs.managedIdentityPrincipalId
-    storageAccountSku: 'Standard_LRS'
-  }
-}
+    // The managed identity to use for all resources.  If one is not provided, a user-assigned
+    // managed identity will be created and assigned appropriate roles.
+    managedIdentityResourceId: userAssignedIdentity.outputs.resourceId
 
-/*
-** Deploy the gpt-4o-mini model into the Azure AI Foundry project that we created.
-TODO: Add the model deployment here
-*/
-module openAIModel './modules/openai-model.bicep' = {
-  name: 'openai-model-${resourceToken}'
-  scope: rg
-  params: {
-    resourceToken: resourceToken
-    location: location
-    principalId: principalId
-    tags: tags
+    // If specified, the resource ID for the Azure AI Foundry Hub that this project will be
+    // attached to.  If not specified, a new Azure AI Foundry Hub will be created.
+    // aiFoundryHubResourceId: null
 
-    aiFoundryProjectName: aiFoundry.outputs.aiFoundryProjectName
-    modelName: 'gpt-4o-mini'
-    deploymentType: 'Global Standard'
+    // Pre-requisites - each one of these resources can be provided using a resourceId OR it will 
+    //  be automatically created for you with some overrides that you can provide.
+
+    // keyVaultResourceId: keyVault.outputs.resourceId
+    logAnalyticsWorkspaceResourceId: logAnalytics.outputs.resourceId
+    applicationInsightsResourceId: appInsights.outputs.resourceId
+    // storageAccountResourceId: storageAccount.outputs.resourceId
+
+    // Model Deployments
+    modelDeployments: [ 
+      {
+        name: 'gpt-4o-mini'
+        model: {
+          name: 'gpt-4o-mini'
+          deploymentType: 'GlobalStandard'
+        }
+      }
+    ]
   }
 }
 
@@ -94,17 +138,15 @@ module webService './modules/web-service.bicep' = {
   params: {
     resourceToken: resourceToken
     location: location
-    principalId: principalId
     tags: tags
 
-    applicationInsightsResourceId: commonServices.outputs.appInsightsResourceId
-    keyVaultUri: commonServices.outputs.keyVaultUri
-    managedIdentityPrincipalId: commonServices.outputs.managedIdentityPrincipalId
+    applicationInsightsResourceId: appInsights.outputs.resourceId
+    managedIdentityPrincipalId: userAssignedIdentity.outputs.principalId
     appServicePlanSku: 'B1'
 
     // For linking the AI Foundry project to the web service
-    aiFoundryProjectName: aiFoundry.outputs.aiFoundryProjectName
-    aiModelName: openAIModel.outputs.modelName
+    aiFoundryProjectName: aiFoundryProject.outputs.aiFoundryProjectName
+    aiModelName: 'gpt-4o-mini'
   }
 }
 

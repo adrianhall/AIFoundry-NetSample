@@ -10,17 +10,11 @@ param resourceToken string
 @description('Primary location for all resources')
 param location string = resourceGroup().location
 
-@description('An optional additional principal ID for the user or app doing the deployment')
-param principalId string = ''
-
 @description('A set of tags to apply to all resources in this environment')
 param tags object = {}
 
 @description('The resource ID of the application insights resource')
 param applicationInsightsResourceId string
-
-@description('The URI of the key vault resource')
-param keyVaultUri string
 
 @description('The principal ID of the user-assigned managed identity to use')
 param managedIdentityPrincipalId string
@@ -73,7 +67,6 @@ module webApp 'br/public:avm/res/web/site:0.12.0' = {
     }
 
     appSettingsKeyValuePairs: {
-      KeyVaultUri: keyVaultUri
       ConnectionStrings__AzureAIFoundry: '${aiFoundryProject.properties.discoveryUrl};${subscription().id};${resourceGroup().name};${aiFoundryProject.name}'
       AzureAI__ModelName: aiModelName
     }
