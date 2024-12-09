@@ -19,8 +19,8 @@ param tags object
 @description('Required.  The resource ID for the AI Foundry Hub.')
 param hubResourceId string
 
-@description('Required.  The Principal ID for the application managed identity')
-param managedIdentityPrincipalId string
+@description('Required.  The resource ID for the application managed identity')
+param managedIdentityResourceId string
 
 import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.2.1'
 @description('Optional. Array of role assignments to create.')
@@ -58,7 +58,7 @@ resource createdResource 'Microsoft.MachineLearningServices/workspaces@2024-07-0
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${managedIdentityPrincipalId}': {}
+      '${managedIdentityResourceId}': {}
     }
   }
   kind: 'Project'
@@ -67,6 +67,7 @@ resource createdResource 'Microsoft.MachineLearningServices/workspaces@2024-07-0
     description: name
     hbiWorkspace: false
     managedNetwork: { isolationMode: 'Disabled' }
+    primaryUserAssignedIdentity: managedIdentityResourceId
     v1LegacyMode: false
     publicNetworkAccess: 'Enabled'
     hubResourceId: hubResourceId

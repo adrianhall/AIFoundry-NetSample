@@ -7,7 +7,32 @@ param nameSuffix string = uniqueString(subscription().subscriptionId, resourceGr
 param name string = 'ai-project-${nameSuffix}'
 
 @description('Optional.  The location for the created resources.  Defaults to the location of the resource group.')
-param location string = resourceGroup().location
+@allowed([
+  'australiaeast'
+  'brazilsouth'
+  'canadacentral'
+  'canadaeast'
+  'eastus'
+  'eastus2'
+  'francecentral'
+  'germanywestcentral'
+  'japaneast'
+  'koreacentral'
+  'northcentralus'
+  'norwayeast'
+  'polandcentral'
+  'southafricanorth'
+  'southcentralus'
+  'southindia'
+  'swedencentral'
+  'switzerlandnorth'
+  'uaenorth'
+  'uksouth'
+  'westeurope'
+  'westus'
+  'westus3'
+])
+param location string = 'eastus2'
 
 @description('Optional.  The list of tags to apply to the created resources.')
 param tags object = {}
@@ -78,7 +103,7 @@ module keyVault './pre-requisites/key-vault.bicep' = {
     tags: tags
     resourceId: keyVaultResourceId
     roleAssignments: concat([
-      { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Key Vault Secrets User' }
+      { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Key Vault Secrets Officer' }
     ], principalId != '' ? [
       { principalId: principalId, principalType: 'User', roleDefinitionIdOrName: 'Owner' }
       { principalId: principalId, principalType: 'User', roleDefinitionIdOrName: 'Key Vault Secrets Officer' }
@@ -126,7 +151,7 @@ module aiFoundryHub './modules/ai-foundry-hub.bicep' = {
     aiServicesResourceId: aiServices.outputs.resourceId
     applicationInsightsResourceId: appInsights.outputs.resourceId
     keyVaultResourceId: keyVault.outputs.resourceId
-    managedIdentityPrincipalId: managedIdentity.outputs.principalId
+    managedIdentityResourceId: managedIdentity.outputs.resourceId
     storageAccountResourceId: storageAccount.outputs.resourceId
     roleAssignments: concat([
       { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Azure AI Developer' }
@@ -144,7 +169,7 @@ module aiFoundryProject './modules/ai-foundry-project.bicep' = {
     location: location
     tags: tags
     hubResourceId: aiFoundryHub.outputs.resourceId
-    managedIdentityPrincipalId: managedIdentity.outputs.principalId
+    managedIdentityResourceId: managedIdentity.outputs.resourceId
     roleAssignments: concat([
       { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Azure AI Developer' }
       { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Search Service Data Contributor' }

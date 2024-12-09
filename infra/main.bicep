@@ -7,6 +7,31 @@ param environmentName string
 
 @minLength(1)
 @description('Primary location for all resources')
+@allowed([
+  'australiaeast'
+  'brazilsouth'
+  'canadacentral'
+  'canadaeast'
+  'eastus'
+  'eastus2'
+  'francecentral'
+  'germanywestcentral'
+  'japaneast'
+  'koreacentral'
+  'northcentralus'
+  'norwayeast'
+  'polandcentral'
+  'southafricanorth'
+  'southcentralus'
+  'southindia'
+  'swedencentral'
+  'switzerlandnorth'
+  'uaenorth'
+  'uksouth'
+  'westeurope'
+  'westus'
+  'westus3'
+])
 param location string
 
 @description('Additional ID of the user or app to assign application roles')
@@ -67,7 +92,7 @@ module appInsights 'br/public:avm/res/insights/component:0.4.2' = {
   name: 'app-insights-${resourceToken}'
   scope: rg
   params: {
-    name: 'ai-${resourceToken}'
+    name: 'appi-${resourceToken}'
     location: location
     tags: tags
     applicationType: 'web'
@@ -110,6 +135,8 @@ module aiFoundryProject 'modules/ptn/ai-foundry/main.bicep' = {
     // Pre-requisites - each one of these resources can be provided using a resourceId OR it will 
     //  be automatically created for you with the default settings necessary for AI Foundry.
 
+    // Note that the Azure AI Foundry must be able to WRITE secrets to the Key Vault.
+
     // keyVaultResourceId: keyVault.outputs.resourceId
     logAnalyticsWorkspaceResourceId: logAnalytics.outputs.resourceId
     applicationInsightsResourceId: appInsights.outputs.resourceId
@@ -120,8 +147,12 @@ module aiFoundryProject 'modules/ptn/ai-foundry/main.bicep' = {
       {
         name: 'gpt-4o-mini'
         model: {
+          format: 'OpenAI'
           name: 'gpt-4o-mini'
-          deploymentType: 'GlobalStandard'
+        }
+        sku: {
+          name: 'GlobalStandard'
+          capacity: 10 
         }
       }
     ]

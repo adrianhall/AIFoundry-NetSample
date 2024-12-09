@@ -31,8 +31,8 @@ param applicationInsightsResourceId string
 @description('Required.  The resource ID for the Azure Key Vault to use.')
 param keyVaultResourceId string
 
-@description('Required.  The Principal ID for the application managed identity')
-param managedIdentityPrincipalId string
+@description('Required.  The Resource ID for the application managed identity')
+param managedIdentityResourceId string
 
 @description('Required.  The resource ID for the storage account')
 param storageAccountResourceId string
@@ -75,23 +75,29 @@ resource aiService 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = 
   scope: resourceGroup(aiServicesId[2], aiServicesId[4])
 }
 
+// resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+//   name: split(managedIdentityResourceId, '/')[8]
+//   scope: resourceGroup(split(managedIdentityResourceId, '/')[2], split(managedIdentityResourceId, '/')[4])
+// }
+
 resource createdResource 'Microsoft.MachineLearningServices/workspaces@2024-07-01-preview' = if (empty(resourceId)) {
   name: name
   location: location
   tags: tags
+  kind: 'Hub'
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${managedIdentityPrincipalId}': {}
+      '${managedIdentityResourceId}': {}
     }
   }
-  kind: 'Hub'
   properties: {
     friendlyName: name
     description: name
     applicationInsights: applicationInsightsResourceId
     keyVault: keyVaultResourceId
     storageAccount: storageAccountResourceId
+    primaryUserAssignedIdentity: managedIdentityResourceId
     hbiWorkspace: false
     managedNetwork: { isolationMode: 'Disabled' }
     v1LegacyMode: false
