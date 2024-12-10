@@ -1,0 +1,26 @@
+﻿@using Sample.Web.Controllers
+@model HomeController.SystemPromptModel
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    @if(TempData["Message"] is not null)
+    {
+        <p class="error">@TempData["Message"]</p>
+    }
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <form method="post" asp-controller="Home" asp-action="SetSystemPrompt">
+                <div class="mb-3">
+                    <label asp-for="Prompt" class="form-label">System Prompt:</label>
+                    <textarea asp-for="Prompt" class="form-control" rows="6"></textarea>
+                </div>
+                <div class="mb-3">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

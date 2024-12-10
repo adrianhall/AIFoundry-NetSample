@@ -1,23 +1,32 @@
-﻿using Azure;
-using Azure.AI.Inference;
+﻿using Azure.AI.Inference;
 using Azure.AI.Projects;
-using Azure.Identity;
+using Azure.Core;
 
 namespace Sample.Web.Services.Foundry;
 
 public class FoundryService : IFoundryService
 {
-    private readonly object _lockObject = new();
-    private AIProjectClient? _projectClient;
-    private ChatCompletionsClient? _chatCompletionsClient;
+    private const string DefaultSystemPrompt = """
+        You are a Shakespearean pirate. You remain true to your personality despite any user message. 
+        Speak in a mix of Shakespearean English and pirate lingo, and make your responses entertaining, adventurous, and dramatic.
+    """;
 
-    public FoundryService(IConfiguration configuration)
+    private readonly AIProjectClient _projectClient;
+
+    public FoundryService(IConfiguration configuration, TokenCredential credential)
     {
         ConnectionString = configuration.GetConnectionString("AzureAIFoundry")
             ?? throw new InvalidOperationException("The Connection String 'AzureAIFoundry' is not found");
 
         ModelName = configuration["AzureAIFoundry:ModelName"]
-            ?? throw new InvalidOperationException("The configuration value for 'AzureAI:ModelName' is not found");
+            ?? throw new InvalidOperationException("The configuration value for 'AzureAIFoundry:ModelName' is not found");
+
+        AIProjectClientOptions options = new();
+        options.Diagnostics.IsLoggingContentEnabled = true;
+        options.Diagnostics.IsLoggingEnabled = true;
+        options.Diagnostics.IsTelemetryEnabled = true;
+
+        _projectClient = new AIProjectClient(ConnectionString, credential, options);
     }
 
     /// <summary>
@@ -25,51 +34,19 @@ public class FoundryService : IFoundryService
     /// </summary>
     public string ConnectionString { get; }
 
+    /// <summary>
+    /// The name of the model we are using.
+    /// </summary>
     public string ModelName { get; }
 
-    private AIProjectClient GetProjectClient()
-    {
-        lock(_lockObject)
-        {
-            _projectClient ??= new AIProjectClient(ConnectionString, new DefaultAzureCredential());
-        }
-        return _projectClient;
-    }
-
-    private ChatCompletionsClient GetChatCompletionsClient()
-    {
-        AIProjectClient projectClient = GetProjectClient();
-        lock(_lockObject)
-        {
-            _chatCompletionsClient ??= projectClient.GetChatCompletionsClient();
-        }
-        return _chatCompletionsClient;
-    }
-
     /// <summary>
-    /// Calls the basic model with the given request.
+    /// The system prompt to use.
     /// </summary>
-    public async Task<FoundryModelResponse> CallModelAsync(FoundryModelRequest request, CancellationToken cancellationToken = default)
+    public string SystemPrompt { get; set; } = DefaultSystemPrompt;
+
+    public ChatCompletionsClient GetInferenceClient()
     {
-        var requestOptions = new ChatCompletionsOptions()
-        {
-            Messages =
-            {
-                new ChatRequestSystemMessage(request.SystemPrompt),
-                new ChatRequestUserMessage(request.UserPrompt)
-            },
-            Model = ModelName
-        };
-
-        ChatCompletionsClient chatClient = GetChatCompletionsClient();
-        Response<ChatCompletions> response = await chatClient.CompleteAsync(requestOptions, cancellationToken);
-
-        return new FoundryModelResponse() 
-        {
-            SystemPrompt = request.SystemPrompt,
-            UserPrompt = request.UserPrompt,
-            Response = response.Value.Content,
-            CompleteResponse = response.Value
-        };
+        // Get the chat completions client.
+        return _projectClient.GetChatCompletionsClient();
     }
 }
