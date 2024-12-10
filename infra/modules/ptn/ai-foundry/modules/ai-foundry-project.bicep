@@ -66,7 +66,6 @@ resource createdResource 'Microsoft.MachineLearningServices/workspaces@2024-07-0
     friendlyName: name
     description: name
     hbiWorkspace: false
-    managedNetwork: { isolationMode: 'Disabled' }
     primaryUserAssignedIdentity: managedIdentityResourceId
     v1LegacyMode: false
     publicNetworkAccess: 'Enabled'

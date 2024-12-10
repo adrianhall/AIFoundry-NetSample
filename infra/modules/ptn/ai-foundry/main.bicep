@@ -103,7 +103,8 @@ module keyVault './pre-requisites/key-vault.bicep' = {
     tags: tags
     resourceId: keyVaultResourceId
     roleAssignments: concat([
-      { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Key Vault Secrets Officer' }
+      { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Key Vault Contributor' }
+      { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Key Vault Crypto Officer' }
     ], principalId != '' ? [
       { principalId: principalId, principalType: 'User', roleDefinitionIdOrName: 'Owner' }
       { principalId: principalId, principalType: 'User', roleDefinitionIdOrName: 'Key Vault Secrets Officer' }
@@ -155,7 +156,6 @@ module aiFoundryHub './modules/ai-foundry-hub.bicep' = {
     storageAccountResourceId: storageAccount.outputs.resourceId
     roleAssignments: concat([
       { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Azure AI Developer' }
-      { principalId: managedIdentity.outputs.principalId, principalType: 'ServicePrincipal', roleDefinitionIdOrName: 'Search Service Data Contributor' }
     ], principalId != '' ? [
       { principalId: principalId, principalType: 'User', roleDefinitionIdOrName: 'Azure AI Developer' }
     ] : [])
