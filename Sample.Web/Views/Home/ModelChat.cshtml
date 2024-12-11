@@ -1,0 +1,19 @@
+﻿
+<div class="container">
+    <div class="row chat-request-form">
+        <div class="request-textbox">
+            <label for="prompt" class="form-label">Prompt:</label>
+            <textarea id="prompt" name="prompt" class="form-control" rows="1" maxlength="4096"></textarea>
+        </div>
+        <div class="request-submit-button">
+            <button type="submit" id="submit" class="btn btn-primary">Submit</button>
+        </div>
+    </div>
+    <div class="row chat-results" id="response">
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
+    <script src="~/js/modelchat.js"></script>
+}

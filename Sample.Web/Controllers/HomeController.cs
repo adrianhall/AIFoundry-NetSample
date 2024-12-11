@@ -27,6 +27,8 @@ public class HomeController(IConfiguration configuration, IFoundryService foundr
 
     public IActionResult Inference() => View();
 
+    public IActionResult ModelChat() => View();
+
     public IActionResult Configuration() 
     {
         var config = ((IConfigurationRoot)configuration).GetDebugView();

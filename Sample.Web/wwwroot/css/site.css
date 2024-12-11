@@ -76,3 +76,81 @@ button.accept-policy {
     white-space: nowrap;
     line-height: 60px;
 }
+
+
+.chat-request-form {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: flex-end;
+    justify-content: stretch;
+}
+
+.chat-results {
+    --sentColor: #0b93f6;
+    --receiveColor: #e5e5ea;
+    --bg: #fff;
+    display: flex;
+    flex-flow: column;
+    margin-top: 1rem;
+}
+
+    .chat-results .chat-message {
+        position: relative;
+        max-width: 75%;
+        margin-bottom: 15px;
+        padding: 10px 20px;
+        line-height: 24px;
+        word-wrap: break-word;
+        border-radius: 25px;
+    }
+
+        .chat-results .chat-message:before {
+            position: absolute;
+            bottom: 0;
+            height: 25px; /* height of our bubble "tail" - should match the border-radius above */
+            content: '';
+            width: 20px;
+        }
+
+        .chat-results .chat-message:after {
+            position: absolute;
+            bottom: 0;
+            height: 25px; /* height of our bubble "tail" - should match the border-radius above */
+            content: '';
+            width: 26px;
+            background-color: var(--bg); /* All tails have the same bg cutout */
+        }
+
+.chat-results .request-message {
+    align-self: flex-end;
+    color: white;
+    background: var(--sentColor);
+}
+
+    .chat-results .request-message:before {
+        right: -7px;
+        background-color: var(--sentColor);
+        border-bottom-left-radius: 16px 14px;
+    }
+
+    .chat-results .request-message:after {
+        right: -26px;
+        border-bottom-left-radius: 10px;
+    }
+
+.chat-results .response-message {
+    align-self: flex-start;
+    color: black;
+    background: var(--receiveColor);
+}
+
+    .chat-results .response-message:before {
+        left: -7px;
+        background-color: var(--receiveColor);
+        border-bottom-right-radius: 16px 14px;
+    }
+
+    .chat-results .response-message:after {
+        left: -26px;
+        border-bottom-right-radius: 10px;
+    }

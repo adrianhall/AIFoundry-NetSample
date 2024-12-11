@@ -11,8 +11,8 @@ public class FoundryService : IFoundryService
         Speak in a mix of Shakespearean English and pirate lingo, and make your responses entertaining, adventurous, and dramatic.
     """;
 
-    private readonly AIProjectClient _projectClient;
-
+    private readonly Lazy<AIProjectClient> _projectClient;
+    
     public FoundryService(IConfiguration configuration, TokenCredential credential)
     {
         ConnectionString = configuration.GetConnectionString("AzureAIFoundry")
@@ -26,7 +26,7 @@ public class FoundryService : IFoundryService
         options.Diagnostics.IsLoggingEnabled = true;
         options.Diagnostics.IsTelemetryEnabled = true;
 
-        _projectClient = new AIProjectClient(ConnectionString, credential, options);
+        _projectClient = new(() => new AIProjectClient(ConnectionString, credential, options));
     }
 
     /// <summary>
@@ -47,6 +47,6 @@ public class FoundryService : IFoundryService
     public ChatCompletionsClient GetInferenceClient()
     {
         // Get the chat completions client.
-        return _projectClient.GetChatCompletionsClient();
+        return _projectClient.Value.GetChatCompletionsClient();
     }
 }
