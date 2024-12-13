@@ -43,6 +43,12 @@ var resourceToken = toLower(uniqueString(subscription().id, environmentName, loc
 @description('A set of tags to apply to all resources in this environment')
 var tags = { 'azd-env-name': environmentName }
 
+//var aiFoundryDetails = split(aiFoundryConnectionString, ';')
+// aiFoundryDetails[0] is the discovery endpoint
+// aiFoundryDetails[1] is the subscription ID
+// aiFoundryDetails[2] is the resource group
+// aiFoundryDetails[3] is the resource name
+
 /*
 ** Resource Group
 **
@@ -113,6 +119,21 @@ module webApp 'br/public:avm/res/web/site:0.12.0' = {
     }
   }
 }
+
+/*
+** Function App for processing incoming RAG documents into the AI Search Service
+*/
+module functionAppPlan 'br/public:avm/res/web/serverfarm:0.3.0' = {
+  name: 'app-service-plan-${resourceToken}'
+  scope: rg
+  params: {
+    name: 'fnasp-${resourceToken}'
+    location: location
+    tags: tags
+    skuName: 'Y1'
+  }
+}
+
 /*
 ** We now need to output the requirements of our application so that we can access it
 ** afterwards.
