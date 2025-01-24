@@ -34,20 +34,11 @@ param environmentName string
 ])
 param location string
 
-@description('The connection string of the AI Foundry Project')
-param aiFoundryConnectionString string
-
 @description('A short string to uniquely identify all resources in this environment')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 
 @description('A set of tags to apply to all resources in this environment')
 var tags = { 'azd-env-name': environmentName }
-
-//var aiFoundryDetails = split(aiFoundryConnectionString, ';')
-// aiFoundryDetails[0] is the discovery endpoint
-// aiFoundryDetails[1] is the subscription ID
-// aiFoundryDetails[2] is the resource group
-// aiFoundryDetails[3] is the resource name
 
 /*
 ** Resource Group
@@ -62,75 +53,38 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 }
 
 /*
-** Now that we have a model deployed, we can deploy a web service that can use the model
-** The project is the central place that is provided for all AI Foundry deployments and
-** the connection string for the AI Foundry Project is injected into the web service.
+** Azure AI Foundry Module, deploying the specific model we expect
 */
-module appServicePlan 'br/public:avm/res/web/serverfarm:0.3.0' = {
-  name: 'app-service-plan-${resourceToken}'
+module aiFoundry './modules/ai-foundry.bicep' = {
+  name: 'aifoundry-deploy-${resourceToken}'
   scope: rg
   params: {
-    name: 'asp-${resourceToken}'
     location: location
     tags: tags
-    skuName: 'B1'
-  }
-}
-
-module webApp 'br/public:avm/res/web/site:0.12.0' = {
-  name: 'webapp-${resourceToken}'
-  scope: rg
-  params: {
-    name: 'web-${resourceToken}'
-    location: location
-    tags: union(tags, { 'azd-service-name': 'webapp' })
-    kind: 'app'
-    serverFarmResourceId: appServicePlan.outputs.resourceId
-    managedIdentities: {
-      systemAssigned: true
-    }
-
-    appSettingsKeyValuePairs: {
-      'ConnectionStrings:AzureAIFoundry': aiFoundryConnectionString
-      'AzureAIFoundry:ModelName': 'gpt-4o'
-    }
-
-    // Set up logging so that all logs are stored for log streaming
-    logsConfiguration: {
-      applicationLogs: {
-        fileSystem: {
-          level: 'Verbose'
-          retentionInDays: 3
-        }
+    openAiDeployments: [
+      {
+        model: { name: 'gpt-4o', version: '2024-05-13' }
+        sku: { name: 'Standard', capacity: 8 }
       }
-      detailedErrorMessages: {
-        enabled: true
-      }
-      failedRequestsTracing: {
-        enabled: true
-      }
-      httpLogs: {
-        fileSystem: {
-          retentionInDays: 3
-          enabled: true
-          retentionInMb: 35
-        }
-      }
-    }
+    ]
   }
 }
 
 /*
-** Function App for processing incoming RAG documents into the AI Search Service
+** App Service with a unique plan
 */
-module functionAppPlan 'br/public:avm/res/web/serverfarm:0.3.0' = {
-  name: 'app-service-plan-${resourceToken}'
+module appService './modules/app-service.bicep' = {
+  name: 'appsvc-deploy-${resourceToken}'
   scope: rg
   params: {
-    name: 'fnasp-${resourceToken}'
     location: location
     tags: tags
-    skuName: 'Y1'
+    serviceName: 'webapp'
+
+    appSettings: {
+      'ConnectionStrings:AzureAIFoundry': aiFoundry.outputs.PROJECT_CONNECTION_STRING
+      'AzureAIFoundry:ModelName': 'gpt-4o'
+    }
   }
 }
 
@@ -138,5 +92,8 @@ module functionAppPlan 'br/public:avm/res/web/serverfarm:0.3.0' = {
 ** We now need to output the requirements of our application so that we can access it
 ** afterwards.
 */
-output SERVICE_WEB_NAME string = webApp.outputs.name
-output SERVICE_WEB_URI string = 'https://${webApp.outputs.defaultHostname}'
+output AIFOUNDRY_CONNECTION_STRING string = aiFoundry.outputs.PROJECT_CONNECTION_STRING
+output OPENAI_SERVICE_ENDPOINT string = aiFoundry.outputs.OPENAI_SERVICE_ENDPOINT
+output AZUREAI_SERVICE_ENDPOINT string = aiFoundry.outputs.AZUREAI_SERVICE_ENDPOINT
+output SERVICE_WEB_NAME string = appService.outputs.SERVICE_WEB_NAME
+output SERVICE_WEB_URI string = appService.outputs.SERVICE_WEB_URI
